@@ -3,7 +3,7 @@ const app = express()
 const route = require('./src/routes')
 const morgan = require('morgan')
 const db = require('./src/config/connectdb')
-const ipWhitelistMiddleware = require('./src/middlewares.js/ipWhitelist')
+const ipClientWhitelistMiddleware = require('./src/middlewares.js/ipWhitelist')
 
 require('dotenv').config();
 
@@ -13,7 +13,7 @@ app.use(express.json())
 app.use(express.urlencoded({
     extended: true
 }))
-app.use(ipWhitelistMiddleware);
+app.use(ipClientWhitelistMiddleware);
 
 db.connect();
 

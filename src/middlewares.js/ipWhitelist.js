@@ -3,14 +3,16 @@ const proxyIpWhitelist = new Set([
     '14.224.135.196'
 ]);
   
-function ipWhitelistMiddleware(req, res, next) {
-    const clientIp = req.ip || req.connection.remoteAddress;
-    console.log("clientIp: ", clientIp)
+function ipClientWhitelistMiddleware(req, res, next) {
+    // Lấy IP client thực sự từ header X-Forwarded-For
+    const xForwardedFor = req.headers['x-forwarded-for'];
+    const clientIp = xForwardedFor ? xForwardedFor.split(',')[0].trim() : req.ip;
+  
     if (!proxyIpWhitelist.has(clientIp)) {
         return res.status(403).send('Forbidden: IP not allowed');
     }
-
+  
     next();
 }
   
-module.exports = ipWhitelistMiddleware;
+module.exports = ipClientWhitelistMiddleware;
