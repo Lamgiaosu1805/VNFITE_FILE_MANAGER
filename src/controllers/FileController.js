@@ -92,7 +92,7 @@ const FileController = {
         try {
             const {idFile} = req.params
             const file = await FileUploadModel.findById(idFile)
-            const imagePath = path.resolve('/var/www/', file.url);
+            const imagePath = path.resolve('/var/www', file.url);
             if (!fs.existsSync(imagePath)) {
                 return res.status(404).send('Image not found');
             }
