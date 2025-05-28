@@ -5,7 +5,7 @@ const proxyIpWhitelist = new Set([
   
 function ipWhitelistMiddleware(req, res, next) {
     const clientIp = req.ip || req.connection.remoteAddress;
-
+    console.log("clientIp: ", clientIp)
     if (!proxyIpWhitelist.has(clientIp)) {
         return res.status(403).send('Forbidden: IP not allowed');
     }
