@@ -1,7 +1,7 @@
 const fileRouter = require('./file')
 
 const route = (app) => {
-    app.use(`/file`, fileRouter)
+    app.use(`/`, fileRouter)
 }
 
 module.exports = route;
