@@ -13,9 +13,17 @@ const createDirIfNotExists = (dir) => {
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        let subFolder = file.mimetype.startsWith('image/') ? 'images' : 'documents';
-        const uploadPath = path.join(BASE_UPLOAD_PATH, subFolder);
-
+        var uploadPath
+        if(process.env.DEPLOY_TYPE != "PRODUCTION") {
+            let subFolder = file.mimetype.startsWith('image/') ? 'images' : 'documents';
+            uploadPath = path.join(BASE_UPLOAD_PATH, subFolder);
+        }
+        else {
+            uploadPath = '/var/www/uploads/documents';
+            if (file.mimetype.startsWith('image/')) {
+                uploadPath = '/var/www/uploads/images';
+            }
+        }
         createDirIfNotExists(uploadPath);
         cb(null, uploadPath);
     },
