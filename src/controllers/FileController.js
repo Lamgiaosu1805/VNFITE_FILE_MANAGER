@@ -88,6 +88,24 @@ const FileController = {
             });
         }
     },
+    showFile: async (req, res) => {
+        try {
+            const {idFile} = req.params
+            const file = await FileUploadModel.findById(idFile)
+            const imagePath = path.resolve('/var/www/', file.url);
+            if (!fs.existsSync(imagePath)) {
+                return res.status(404).send('Image not found');
+            }
+            res.sendFile(imagePath);
+        } catch (error) {
+            console.log(error)
+            res.status(400).json({
+                success: false,
+                message: "Can't show this file",
+                error: error.message,
+            });
+        }
+    }
 };
 
 module.exports = FileController;
