@@ -7,6 +7,7 @@ function ipClientWhitelistMiddleware(req, res, next) {
     // Lấy IP client thực sự từ header X-Forwarded-For
     const xForwardedFor = req.headers['x-forwarded-for'];
     const clientIp = xForwardedFor ? xForwardedFor.split(',')[0].trim() : req.ip;
+    console.log("ClientIP: ", clientIp)
   
     if (!proxyIpWhitelist.has(clientIp)) {
         return res.status(403).send('Forbidden: IP not allowed');
