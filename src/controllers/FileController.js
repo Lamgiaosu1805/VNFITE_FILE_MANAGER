@@ -1,6 +1,7 @@
 const FileUploadModel = require("../models/FileUploadModel");
 const fs = require("fs");
 const path = require("path");
+const syncFilesFromSource = require("../utils/sftpSync");
 
 // Hàm xóa file vật lý
 const deleteUploadedFiles = (files) => {
@@ -104,6 +105,15 @@ const FileController = {
                 message: "Can't show this file",
                 error: error.message,
             });
+        }
+    },
+    syncFile: async (req, res) => {
+        try {
+            const result = await syncFilesFromSource();
+            res.json({ success: true, ...result });
+        } catch (err) {
+            console.error("Sync failed:", err.message);
+            res.status(500).json({ success: false, message: "Sync failed", error: err.message });
         }
     }
 };

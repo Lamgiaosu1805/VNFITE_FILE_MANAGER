@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const moment = require('moment-timezone')
 
-const FileUpload = new Schema({
+const FileSync = new Schema({
     fileName: { type: String, required: true },
     mimeType: { type: String, required: true },
     type: { type: String, required: true },//image or document
@@ -21,10 +21,10 @@ const FileUpload = new Schema({
     timestamps: false
 })
 
-FileUpload.pre(['updateOne', 'findOneAndUpdate'], function(next) {
+FileSync.pre(['updateOne', 'findOneAndUpdate'], function(next) {
     const now = moment.tz(Date.now(), 'Asia/Ho_Chi_Minh').format();
     this.set({ updatedAt: now }); // Cập nhật trường updatedAt với thời gian hiện tại ở múi giờ Việt Nam
     next();
 });
 
-module.exports = mongoose.model('fileUpload', FileUpload)
+module.exports = mongoose.model('fileSync', FileSync)
