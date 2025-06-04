@@ -1,11 +1,22 @@
+// file: services/syncService.js
 const mysql = require("mysql2/promise");
 const sftp = require("ssh2-sftp-client");
 const fs = require("fs");
 const path = require("path");
-const mime = require("mime-types"); // dùng mime-types
+const mongoose = require("mongoose");
+const mime = require("mime-types");  // dùng mime-types cho lookup
 const FileSyncModel = require("../models/FileSyncModel");
 
 const UPLOAD_DIR = "/var/www/uploads/backup";
+
+function getRealExtension(filename) {
+  const lastUnderscoreIndex = filename.lastIndexOf('_');
+  let nameWithoutSuffix = filename;
+  if (lastUnderscoreIndex !== -1) {
+    nameWithoutSuffix = filename.substring(0, lastUnderscoreIndex);
+  }
+  return path.extname(nameWithoutSuffix);  // trả về ví dụ ".jpg"
+}
 
 async function syncFiles() {
   const MYSQL_CONFIG = {
@@ -41,28 +52,33 @@ async function syncFiles() {
         const filePathRemote = row.path;
         const fileName = row.name;
 
-        // Lấy phần mở rộng file (vd: .jpg)
-        const ext = path.extname(fileName);
+        // Lấy extension thật sự, ví dụ ".jpg"
+        const realExt = getRealExtension(fileName);
 
-        // Xác định loại file dựa trên đuôi
+        // Lấy tên gốc không có extension
+        const baseName = path.basename(fileName, realExt);
+
+        // Đổi tên file mới với timestamp và giữ đúng extension
+        const uniqueName = `${Date.now()}_${baseName}${realExt}`;
+
+        // Kiểm tra có phải file ảnh không
         const isImage = ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(
-          ext.slice(1).toLowerCase()
+          realExt.slice(1).toLowerCase()
         );
+
         const type = isImage ? "image" : "document";
         const subFolder = isImage ? "images" : "documents";
 
-        // Tạo tên file mới tránh trùng (ví dụ thêm timestamp)
-        const uniqueName = `${Date.now()}_${fileName}`;
-
+        // Đường dẫn lưu file trên server
         const destPath = path.join(UPLOAD_DIR, subFolder, uniqueName);
         fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
-        // Tải file từ sftp về thư mục đích
+        // Tải file từ SFTP về server
         await sftpClient.fastGet(filePathRemote, destPath);
         console.log(`⬇️  Downloaded ${fileName} as ${uniqueName}`);
 
-        // Lấy mimeType chuẩn bằng mime-types
-        const mimeType = mime.lookup(fileName) || "application/octet-stream";
+        // Lấy mimeType chuẩn
+        const mimeType = mime.lookup(realExt) || "application/octet-stream";
 
         // Lưu thông tin file vào MongoDB
         const fileDoc = new FileSyncModel({
@@ -83,8 +99,7 @@ async function syncFiles() {
 
     await sftpClient.end();
     await connection.end();
-
-    // KHÔNG gọi mongoose.disconnect() nếu đang dùng trong server
+    // await mongoose.disconnect();
 
     return {
       success: true,
