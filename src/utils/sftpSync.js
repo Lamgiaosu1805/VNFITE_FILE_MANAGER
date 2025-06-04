@@ -8,7 +8,7 @@ const FileSyncModel = require("../models/FileSyncModel");
 async function syncFilesFromSource() {
   const mysqlConn = await mysql.createConnection({
     host: "42.113.122.119",
-    user: "root",
+    user: "vnfite",
     password: process.env.passwordMYSQL,
     database: "VNF_FILE_MANAGEMENT",
   });
