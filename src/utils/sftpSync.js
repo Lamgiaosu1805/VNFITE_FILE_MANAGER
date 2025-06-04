@@ -7,27 +7,25 @@ const mongoose = require("mongoose");
 const FileSyncModel = require("../models/FileSyncModel");
 
 
-console.log(process.env.passwordMYSQL)
-console.log(process.env.passwordSFTP)
 
-const MYSQL_CONFIG = {
-  host: "42.113.122.119",
-  port: 3306,
-  user: "vnfite",
-  password: process.env.passwordMYSQL,
-  database: "VNF_FILE_MANAGEMENT",
-};
-
-const SSH_CONFIG = {
-  host: "42.113.122.119",
-  port: 22,
-  username: "root",
-  password: process.env.passwordSFTP,
-};
 
 const UPLOAD_DIR = "/var/www/uploads/backup";
 
 async function syncFiles() {
+  const MYSQL_CONFIG = {
+    host: "42.113.122.119",
+    port: 3306,
+    user: "vnfite",
+    password: process.env.passwordMYSQL,
+    database: "VNF_FILE_MANAGEMENT",
+  };
+
+  const SSH_CONFIG = {
+    host: "42.113.122.119",
+    port: 22,
+    username: "root",
+    password: process.env.passwordSFTP,
+  };
   const errorFiles = [];
   try {
     const connection = await mysql.createConnection(MYSQL_CONFIG);
