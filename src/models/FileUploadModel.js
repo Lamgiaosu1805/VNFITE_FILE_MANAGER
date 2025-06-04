@@ -7,7 +7,6 @@ const FileUpload = new Schema({
     mimeType: { type: String, required: true },
     type: { type: String, required: true },//image or document
     url: { type: String, required: true },
-    idOLD: { type: String, required: true },
     isDelete: { type: Boolean, default: false },
     createdAt: {
         type: String,
