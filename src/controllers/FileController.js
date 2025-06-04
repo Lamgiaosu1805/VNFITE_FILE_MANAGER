@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const syncFilesFromSource = require("../utils/sftpSync");
 const FileSyncModel = require("../models/FileSyncModel");
+const mime = require('mime');
 
 // Hàm xóa file vật lý
 const deleteUploadedFiles = (files) => {
