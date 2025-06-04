@@ -6,6 +6,10 @@ const path = require("path");
 const mongoose = require("mongoose");
 const FileSyncModel = require("../models/FileSyncModel");
 
+
+console.log(process.env.passwordMYSQL)
+console.log(process.env.passwordSFTP)
+
 const MYSQL_CONFIG = {
   host: "42.113.122.119",
   port: 3306,
