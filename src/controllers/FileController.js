@@ -3,7 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const syncFilesFromSource = require("../utils/sftpSync");
 const FileSyncModel = require("../models/FileSyncModel");
-const mime = require('mime-types');
 
 // Hàm xóa file vật lý
 const deleteUploadedFiles = (files) => {
@@ -135,8 +134,6 @@ const FileController = {
             if (!fs.existsSync(imagePath)) {
                 return res.status(404).send('Image not found');
             }
-            const mimeType = mime.getType(imagePath) || 'application/octet-stream';
-            res.type(mimeType);
             res.sendFile(imagePath);
         } catch (error) {
             console.log(error)
