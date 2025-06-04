@@ -2,6 +2,7 @@ const FileUploadModel = require("../models/FileUploadModel");
 const fs = require("fs");
 const path = require("path");
 const syncFilesFromSource = require("../utils/sftpSync");
+const FileSyncModel = require("../models/FileSyncModel");
 
 // Hàm xóa file vật lý
 const deleteUploadedFiles = (files) => {
@@ -94,6 +95,7 @@ const FileController = {
             const {idFile} = req.params
             const file = await FileUploadModel.findById(idFile)
             const imagePath = path.join('/var/www', file.url);
+            console.log(imagePath)
             if (!fs.existsSync(imagePath)) {
                 return res.status(404).send('Image not found');
             }
@@ -121,6 +123,25 @@ const FileController = {
             res.status(500).json({
             message: result.message || "Sync failed",
             error: result.error,
+            });
+        }
+    },
+    showFileSync: async (req, res) => {
+        try {
+            const {idFile} = req.params
+            const file = await FileSyncModel.findOne({idOLD: idFile})
+            const imagePath = path.join('/var/www', file.url);
+            console.log(imagePath)
+            if (!fs.existsSync(imagePath)) {
+                return res.status(404).send('Image not found');
+            }
+            res.sendFile(imagePath);
+        } catch (error) {
+            console.log(error)
+            res.status(400).json({
+                success: false,
+                message: "Can't show this file",
+                error: error.message,
             });
         }
     }
