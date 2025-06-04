@@ -134,6 +134,8 @@ const FileController = {
             if (!fs.existsSync(imagePath)) {
                 return res.status(404).send('Image not found');
             }
+            const mimeType = mime.getType(imagePath) || 'application/octet-stream';
+            res.type(mimeType);
             res.sendFile(imagePath);
         } catch (error) {
             console.log(error)
