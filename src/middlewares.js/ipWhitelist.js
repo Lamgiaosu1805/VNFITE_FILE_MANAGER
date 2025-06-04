@@ -2,7 +2,6 @@ const proxyIpWhitelist = new Set([
     '42.113.122.155',
     '14.224.135.196',
     '42.113.122.118',
-    '127.0.0.1'
 ]);
   
 function ipClientWhitelistMiddleware(req, res, next) {

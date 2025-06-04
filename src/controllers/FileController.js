@@ -108,12 +108,20 @@ const FileController = {
         }
     },
     syncFile: async (req, res) => {
-        try {
-            const result = await syncFilesFromSource();
-            res.json({ success: true, ...result });
-        } catch (err) {
-            console.error("Sync failed:", err.message);
-            res.status(500).json({ success: false, message: "Sync failed", error: err.message });
+        const result = await syncFilesFromSource.syncFiles();
+
+        if (result.success) {
+            res.json({
+            message: "Sync completed",
+            total: result.totalFiles,
+            failed: result.failedFiles,
+            errors: result.errors, // danh sách file lỗi chi tiết
+            });
+        } else {
+            res.status(500).json({
+            message: result.message || "Sync failed",
+            error: result.error,
+            });
         }
     }
 };

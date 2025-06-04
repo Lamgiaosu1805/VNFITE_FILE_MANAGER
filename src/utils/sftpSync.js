@@ -1,72 +1,89 @@
+// file: services/syncService.js
 const mysql = require("mysql2/promise");
-const SftpClient = require("ssh2-sftp-client");
+const sftp = require("ssh2-sftp-client");
 const fs = require("fs");
 const path = require("path");
-const mime = require("mime-types");
+const mongoose = require("mongoose");
 const FileSyncModel = require("../models/FileSyncModel");
 
-async function syncFilesFromSource() {
-  const mysqlConn = await mysql.createConnection({
-    host: "42.113.122.119",
-    user: "vnfite",
-    password: process.env.passwordMYSQL,
-    database: "VNF_FILE_MANAGEMENT",
-  });
+const MYSQL_CONFIG = {
+  host: "42.113.122.119",
+  port: 3306,
+  user: "vnfite",
+  password: "Vnfite20230712!@#",
+  database: "VNF_FILE_MANAGEMENT",
+};
 
-  const [rows] = await mysqlConn.execute(
-    "SELECT id, name, path, type FROM VNF_FILE_MANAGEMENT.tbl_file_information WHERE is_deleted IS NULL"
-  );
+const SSH_CONFIG = {
+  host: "42.113.122.119",
+  port: 22,
+  username: "root",
+  password: process.env.passwordMYSQL,
+};
 
-  const sftp = new SftpClient();
-  await sftp.connect({
-    host: "42.113.122.119",
-    username: "root",
-    password: process.env.passwordSFTP,
-  });
+const UPLOAD_DIR = "/var/www/uploads/backup";
 
-  const saved = [];
-  const skipped = [];
-  const localBase = "/var/www/uploads/backup";
+async function syncFiles() {
+  const errorFiles = [];
+  try {
+    const connection = await mysql.createConnection(MYSQL_CONFIG);
+    console.log("✅ Connected to MySQL");
 
-  for (const row of rows) {
-    const filename = row.name;
-    const remotePath = row.path;
-    const mimetype = mime.lookup(filename) || "application/octet-stream";
-    const type = mimetype.startsWith("image/") ? "image" : "document";
+    const [rows] = await connection.execute(
+      `SELECT id, name, path, type FROM tbl_file_information WHERE is_deleted IS NULL`
+    );
 
-    const localDir = path.join(localBase, type === "image" ? "images" : "documents");
-    const localPath = path.join(localDir, filename);
-    const url = `/uploads/backup/${type === "image" ? "images" : "documents"}/${filename}`;
+    const sftpClient = new sftp();
+    await sftpClient.connect(SSH_CONFIG);
 
-    try {
-      const exists = await FileSyncModel.findOne({ idOLD: row.id });
-      if (exists) {
-        skipped.push(filename);
-        continue;
+    for (const row of rows) {
+      try {
+        const filePathRemote = row.path;
+        const fileName = row.name;
+        const type = ["jpg", "png", "jpeg"].includes(row.type.toLowerCase())
+          ? "image"
+          : "document";
+        const subFolder = type === "image" ? "images" : "documents";
+        const destPath = path.join(UPLOAD_DIR, subFolder, fileName);
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+
+        await sftpClient.fastGet(filePathRemote, destPath);
+        console.log(`⬇️  Downloaded ${fileName}`);
+
+        const url = `/uploads/backup/${subFolder}/${fileName}`;
+        const fileDoc = new FileSyncModel({
+          fileName,
+          mimeType: `application/${row.type}`,
+          type,
+          url,
+          idOLD: row.id,
+        });
+
+        await fileDoc.save();
+        console.log(`📥 Saved ${fileName} to MongoDB`);
+      } catch (fileErr) {
+        console.error(`❌ Error syncing file ${row.name}:`, fileErr.message);
+        errorFiles.push({ id: row.id, name: row.name, error: fileErr.message });
       }
-
-      if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
-
-      await sftp.fastGet(remotePath, localPath);
-
-      const doc = await FileSyncModel.create({
-        fileName: filename,
-        mimeType: mimetype,
-        type,
-        url,
-        idOLD: row.id,
-      });
-
-      saved.push(doc);
-    } catch (err) {
-      console.error(`❌ Lỗi khi xử lý file ${filename}:`, err.message);
     }
+
+    await sftpClient.end();
+    await connection.end();
+    await mongoose.disconnect();
+
+    return {
+      success: true,
+      totalFiles: rows.length,
+      failedFiles: errorFiles.length,
+      errors: errorFiles,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: "Critical sync failure",
+      error: err.message,
+    };
   }
-
-  await sftp.end();
-  await mysqlConn.end();
-
-  return { savedCount: saved.length, skippedCount: skipped.length };
 }
 
-module.exports = syncFilesFromSource;
+module.exports = { syncFiles };
