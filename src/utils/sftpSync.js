@@ -10,7 +10,7 @@ const MYSQL_CONFIG = {
   host: "42.113.122.119",
   port: 3306,
   user: "vnfite",
-  password: "Vnfite20230712!@#",
+  password: process.env.passwordMYSQL,
   database: "VNF_FILE_MANAGEMENT",
 };
 
@@ -18,7 +18,7 @@ const SSH_CONFIG = {
   host: "42.113.122.119",
   port: 22,
   username: "root",
-  password: process.env.passwordMYSQL,
+  password: process.env.passwordSFTP,
 };
 
 const UPLOAD_DIR = "/var/www/uploads/backup";
