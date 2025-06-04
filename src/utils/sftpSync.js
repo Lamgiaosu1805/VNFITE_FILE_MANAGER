@@ -1,13 +1,9 @@
-// file: services/syncService.js
 const mysql = require("mysql2/promise");
 const sftp = require("ssh2-sftp-client");
 const fs = require("fs");
 const path = require("path");
-const mongoose = require("mongoose");
+const mime = require("mime-types"); // dùng mime-types
 const FileSyncModel = require("../models/FileSyncModel");
-
-
-
 
 const UPLOAD_DIR = "/var/www/uploads/backup";
 
@@ -26,7 +22,9 @@ async function syncFiles() {
     username: "root",
     password: process.env.passwordSFTP,
   };
+
   const errorFiles = [];
+
   try {
     const connection = await mysql.createConnection(MYSQL_CONFIG);
     console.log("✅ Connected to MySQL");
@@ -42,27 +40,41 @@ async function syncFiles() {
       try {
         const filePathRemote = row.path;
         const fileName = row.name;
-        const type = ["jpg", "png", "jpeg"].includes(row.type.toLowerCase())
-          ? "image"
-          : "document";
-        const subFolder = type === "image" ? "images" : "documents";
-        const destPath = path.join(UPLOAD_DIR, subFolder, fileName);
+
+        // Lấy phần mở rộng file (vd: .jpg)
+        const ext = path.extname(fileName);
+
+        // Xác định loại file dựa trên đuôi
+        const isImage = ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(
+          ext.slice(1).toLowerCase()
+        );
+        const type = isImage ? "image" : "document";
+        const subFolder = isImage ? "images" : "documents";
+
+        // Tạo tên file mới tránh trùng (ví dụ thêm timestamp)
+        const uniqueName = `${Date.now()}_${fileName}`;
+
+        const destPath = path.join(UPLOAD_DIR, subFolder, uniqueName);
         fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
+        // Tải file từ sftp về thư mục đích
         await sftpClient.fastGet(filePathRemote, destPath);
-        console.log(`⬇️  Downloaded ${fileName}`);
+        console.log(`⬇️  Downloaded ${fileName} as ${uniqueName}`);
 
-        const url = `/uploads/backup/${subFolder}/${fileName}`;
+        // Lấy mimeType chuẩn bằng mime-types
+        const mimeType = mime.lookup(fileName) || "application/octet-stream";
+
+        // Lưu thông tin file vào MongoDB
         const fileDoc = new FileSyncModel({
-          fileName,
-          mimeType: `application/${row.type}`,
+          fileName: uniqueName,
+          mimeType,
           type,
-          url,
+          url: `/uploads/backup/${subFolder}/${uniqueName}`,
           idOLD: row.id,
         });
 
         await fileDoc.save();
-        console.log(`📥 Saved ${fileName} to MongoDB`);
+        console.log(`📥 Saved ${uniqueName} to MongoDB`);
       } catch (fileErr) {
         console.error(`❌ Error syncing file ${row.name}:`, fileErr.message);
         errorFiles.push({ id: row.id, name: row.name, error: fileErr.message });
@@ -71,7 +83,8 @@ async function syncFiles() {
 
     await sftpClient.end();
     await connection.end();
-    await mongoose.disconnect();
+
+    // KHÔNG gọi mongoose.disconnect() nếu đang dùng trong server
 
     return {
       success: true,
