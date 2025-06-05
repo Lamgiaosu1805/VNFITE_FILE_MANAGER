@@ -16,6 +16,7 @@ const deleteUploadedFiles = (files) => {
 
 const FileController = {
     uploadFile: async (req, res) => {
+        console.log("REQUEST_BODY: ", req.body)
         const files = req.files;
         const mappingsRaw = req.body.mappings;
 
