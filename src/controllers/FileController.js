@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const syncFilesFromSource = require("../utils/sftpSync");
 const FileSyncModel = require("../models/FileSyncModel");
+const { default: mongoose } = require("mongoose");
 
 // Hàm xóa file vật lý
 const deleteUploadedFiles = (files) => {
@@ -19,12 +20,14 @@ const FileController = {
         const mappingsRaw = req.body.mappings;
 
         if (!files || files.length === 0) {
+            console.log("No files uploaded.")
             return res.status(400).json({ success: false, message: "No files uploaded." });
         }
 
         if (!mappingsRaw) {
             // Nếu không có mappings thì xóa file và trả lỗi
             deleteUploadedFiles(files);
+            console.log("Missing required metadata mappings.")
             return res.status(400).json({ success: false, message: "Missing required metadata mappings." });
         }
 
@@ -34,10 +37,12 @@ const FileController = {
             mappings = JSON.parse(mappingsRaw);
 
             if (!Array.isArray(mappings)) {
+                console.log("Mappings must be an array.")
                 throw new Error("Mappings must be an array.");
             }
 
             if (mappings.length !== files.length) {
+                console.log("Number of metadata mappings does not match number of files.")
                 throw new Error("Number of metadata mappings does not match number of files.");
             }
 
@@ -50,6 +55,7 @@ const FileController = {
                     !file.mimetype.startsWith("image/") &&
                     !file.mimetype.startsWith("application/")
                 ) {
+                    console.log(`Unsupported file type: ${file.mimetype}`)
                     throw new Error(`Unsupported file type: ${file.mimetype}`);
                 }
 
@@ -93,10 +99,19 @@ const FileController = {
     showFile: async (req, res) => {
         try {
             const {idFile} = req.params
-            const file = await FileUploadModel.findById(idFile)
+            var file;
+            if(mongoose.Types.ObjectId.isValid(idFile)) {
+                console.log("OBJECTID")
+                file = await FileUploadModel.findById(idFile)
+            }
+            else {
+                console.log("UUID")
+                file = await FileSyncModel.findOne({idOLD: idFile})
+            }
             const imagePath = path.join('/var/www', file.url);
             console.log(imagePath)
             if (!fs.existsSync(imagePath)) {
+                console.log('File not found')
                 return res.status(404).send('File not found');
             }
             res.sendFile(imagePath);
@@ -114,15 +129,15 @@ const FileController = {
 
         if (result.success) {
             res.json({
-            message: "Sync completed",
-            total: result.totalFiles,
-            failed: result.failedFiles,
-            errors: result.errors, // danh sách file lỗi chi tiết
+                message: "Sync completed",
+                total: result.totalFiles,
+                failed: result.failedFiles,
+                errors: result.errors, // danh sách file lỗi chi tiết
             });
         } else {
             res.status(500).json({
-            message: result.message || "Sync failed",
-            error: result.error,
+                message: result.message || "Sync failed",
+                error: result.error,
             });
         }
     },
@@ -133,6 +148,7 @@ const FileController = {
             const imagePath = path.join('/var/www', file.url);
             console.log(imagePath)
             if (!fs.existsSync(imagePath)) {
+                console.log('Image not found')
                 return res.status(404).send('Image not found');
             }
             res.sendFile(imagePath);
