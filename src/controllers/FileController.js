@@ -115,7 +115,11 @@ const FileController = {
                 console.log('File not found')
                 return res.status(404).send('File not found');
             }
-            res.sendFile(imagePath);
+            res.sendFile(imagePath, {
+                headers: {
+                    'Cache-Control': 'public, max-age=86400',
+                }
+            });
         } catch (error) {
             console.log(error)
             res.status(400).json({

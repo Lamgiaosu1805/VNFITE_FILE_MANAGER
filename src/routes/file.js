@@ -5,7 +5,7 @@ const router = express.Router()
 
 router.post('/upload', uploadMiddleware, FileController.uploadFile);
 router.get('/file/:idFile', FileController.showFile);
-router.get('/fileSync/:idFile', FileController.showFileSync);
+// router.get('/fileSync/:idFile', FileController.showFileSync);
 router.post('/sync-files-from-source', FileController.syncFile);
 
 module.exports = router;
