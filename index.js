@@ -13,7 +13,7 @@ app.use(express.json())
 app.use(express.urlencoded({
     extended: true
 }))
-app.use(ipClientWhitelistMiddleware);
+// app.use(ipClientWhitelistMiddleware);
 
 db.connect();
 
